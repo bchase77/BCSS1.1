@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<html>
+  <head>
+    <!-- [START css] -->
+    <link type="text/css" rel="stylesheet" href="/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link type="text/css" rel="stylesheet" href="/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+    <!-- [END css] -->
+    <style type="text/css">
+      body {
+        padding-top: 40px;
+        padding-bottom: 40px;
+        background-color: #f5f5f5;
+      }
+      blockquote {
+        margin-bottom: 10px;
+        border-left-color: #bbb;
+      }
+      form {
+        margin-top: 10px;
+      }
+      .form-signin input[type="text"] {
+        font-size: 16px;
+        height: auto;
+        margin-bottom: 15px;
+        padding: 7px 9px;
+      }
+      .row {
+        margin-left: 0px;
+        margin-top: 10px;
+        overflow: scroll;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="#">App Engine Sevron Option Screener</a>
+        </div>
+      </div>
+    </div>
+    <div class="container">
+<!--{#-->
+      <!--<div class="row">-->
+        <!--<blockquote>-->
+          <!--<table border="1" align="left">-->
+            <!--<tr>-->
+              <!--&lt;!&ndash;<th>Image</th>&ndash;&gt;-->
+              <!--<th>Date title</th>-->
+              <!--<th>ID title</th>-->
+              <!--<th>Position title</th>-->
+              <!--<th>Status title</th>-->
+            <!--</tr>-->
+            <!--{% for item in items %}-->
+            <!--<TR>-->
+              <!--&lt;!&ndash;<TD align="center" class="c1"><IMG src="favicon.ico"></TD>&ndash;&gt;-->
+              <!--<TD align="center" class="c2">{{item.date}}</TD>-->
+              <!--<TD align="center" class="c3">{{item.id}}</TD>-->
+              <!--<TD align="center" class="c4"><SPAN>{{item.position}}</SPAN></TD>-->
+              <!--<TD align="center" class="c5"><SPAN>{{item.status}}</SPAN></TD>-->
+            <!--</TR>-->
+            <!--{% endfor %}-->
+          <!--</table>-->
+        <!--</blockquote>-->
+      <!--</div>-->
+      <!--#}-->
+      <!--Organize the Call section-->
+      <h2> Calls</h2>
+      <h3>{{ localDatetime }} Eastern Time</h3>
+      <div class="row">
+        <blockquote>
+          <table border="1" align="left">
+            <tr>
+              <!--<th>Image</th>-->
+              <th>Symbol</th>
+              <th>My Qty</th>
+              <th>My Cost</th>
+              <th>My Cost/Sh</th>
+              <th>Last</th>
+              <th>Chg Today</th>
+              <th>Contracts</th>
+              <th>Contract Date</th>
+              <th>Strike</th>
+              <th>Cost:Bid</th>
+              <th>Cost:Ask</th>
+              <th>Snapshot Price</th>
+              <th>Income</th>
+              <th>Profit</th>
+              <th>ROI</th>
+              <th>Inc/Year</th>
+              <th>ROI/Year</th>
+            </tr>
+            {% for tr in transactions %}
+            <TR>
+              <!--<TD align="center" class="c1"><IMG src="favicon.ico"></TD>-->
+              <TD align="center" class="c2">{{tr.Symbol}}</TD>
+              <TD align="center" class="c3">{{tr.MyQty}}</TD>
+              <TD align="center" class="c4"><SPAN>{{tr.MyCost}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.MyCostPerShare}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.Last}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.ChgToday}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.Contracts}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.ContractDate}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.Strike}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.CostBid}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.CostAsk}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.SnapshotPrice}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.Income}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.Profit}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.ROIForOne}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.IncPerYear}}</SPAN></TD>
+              <TD align="center" class="c5"><SPAN>{{tr.ROIPerYear}}</SPAN></TD>
+            </TR>
+            {% endfor %}
+          </table>
+        </blockquote>
+        </div>
+
+      <!-- [START tickers] -->
+<!--{#-->
+      <!--{% for ticker in tickers %}-->
+      <!--<div class="row">-->
+        <!--<blockquote>-->
+          <!--<li> {{ ticker.symbol }} </li>-->
+          <!--<li> {{ ticker.companyName }} </li>-->
+          <!--<li> {{ ticker.lastPrice }} </li>-->
+          <!--<li> {{ ticker.change }} </li>-->
+          <!--<li> {{ ticker.volume }} </li>-->
+          <!--<li> {{ ticker.bid }} </li>-->
+          <!--<li> {{ ticker.ask }} </li>-->
+          <!--<li> {{ ticker.openInt }} </li>-->
+          <!--<li> {{ ticker.strikePrice }} </li>-->
+          <!--<li> {{ ticker.strikeMonth }} </li>-->
+          <!--<li> {{ ticker.strikeYear }} </li>-->
+          <!--<li> {{ ticker.optionType }} </li>-->
+        <!--</blockquote>-->
+      <!--</div>-->
+      <!--{% endfor %}-->
+       <!--[END tickers] -->
+<!--#}-->
+
+      <form action="/enterTicker" method="post">
+        <div><textarea name="content" class="input-block-level" rows="3"></textarea></div>
+        <div><input type="submit" class="btn btn-large btn-primary" value="Enter Ticker Symbol"></div>
+      </form>
+
+      <hr>
+
+      <form>xactionbook name:
+        <input value="{{ xactionbook_name }}" name="xactionbook_name">
+        <input type="submit" value="switch">
+      </form>
+
+      <form>Tickerbook name:
+        <input value="{{ tickerbook_name }}" name="tickerbook_name">
+        <input type="submit" value="switch">
+      </form>
+
+      <a href="{{ url|safe }}">{{ url_linktext }}</a>
+    </div>
+  </body>
+</html>
+{% endautoescape %}
