@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!C:\\Python27\\python
+
 from __future__ import print_function
 
 # Copyright 2016 Google Inc.
@@ -19,17 +20,21 @@ from __future__ import print_function
 import logging
 import os
 import urllib
+import urllib2
 
-#import pytz
-#from pytz import timezone, utc
+from datetime import datetime, date, timedelta
+import time
+from time import sleep
 
-#import sys
-
-from datetime import datetime, date, time, timedelta
+#from google.appengine.lib.requests import requests
 from google.appengine.api import users
 from google.appengine.ext import ndb
 import jinja2
 import webapp2
+from webapp2_extras import json
+import sys
+
+logging.info(sys.version)
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
@@ -37,121 +42,123 @@ JINJA_ENVIRONMENT = jinja2.Environment(
     autoescape=True)
 # [END imports]
 
-# DEFAULT_GUESTBOOK_NAME = 'default_guestbook'
-# DEFAULT_TICKERBOOK_NAME = 'default_tickerbook'
 DEFAULT_XACTIONBOOK_NAME = 'default_xactionbook'
+DEFAULT_TICKERBOOK_NAME = 'default_tickerbook'
 
-# log = open("mylog.txt", 'a')
-# sys.stdout = log
-
-# We set a parent key on the 'Greetings' to ensure that they are all
-# in the same entity group. Queries across the single entity group
-# will be consistent. However, the write rate should be limited to
-# ~1/second.
-
-# def guestbook_key(guestbook_name=DEFAULT_GUESTBOOK_NAME):
-#     """Constructs a Datastore key for a Guestbook entity.
-#
-#     We use guestbook_name as the key.
-#     """
-#     return ndb.Key('Guestbook', guestbook_name)
-#
-# def tickerbook_key(tickerbook_name=DEFAULT_TICKERBOOK_NAME):
-#     """Constructs a Datastore key for a Guestbook entity.
-#
-#     We use guestbook_name as the key.
-#     """
-#     return ndb.Key('Tickerbook', tickerbook_name)
-#
 def xactionbook_key(xactionbook_name=DEFAULT_XACTIONBOOK_NAME):
     """Constructs a Datastore key for a Guestbook entity.
-
     We use guestbook_name as the key.
     """
     return ndb.Key('xactionbook', xactionbook_name)
 
-# def pP(item, toPrint):
-#     "pP prints text to an HTML page with no divider"
-#     item.response.write(toPrint)
-#     return
-#
-# def pL(item, toPrint):
-#     "pL prints text to an HTML page, followed by a divider"
-#     item.response.write(toPrint+"<div></div>")
-#     return
+def tickerbook_key(tickerbook_name=DEFAULT_TICKERBOOK_NAME):
+    """Constructs a Datastore key for a ticker entity.
+    We use tickerbook_name as the key.
+    """
+    return ndb.Key('tickerbook', tickerbook_name)
 
-# utcmoment_unaware = datetime.utcnow()
-# utcmoment = utcmoment_unaware.replace(tzinfo=pytz.utc)
-# local_tz = pytz.timezone('PST')
-# localDatetime = utcmoment.astimezone(pytz.timezone('America/Los_Angeles'))
 
-class Transaction():
-    """A possible transaction that could be done."""
+# Mainpage:
+#    Show the current list of tickers under analysis
+#       Show total put maintenance required
+#       Show total cash on hand (for covered puts sales)
+#       Show Qty of long shares (for covered calls sales)
+#       Show upcoming expirations
+#    Show top put prospects
+#       Show current positions and upcoming expirations
+#       Show total cash on hand (for covered puts sales)
+#       Show ROI in various ways
+#       Show Put Maintenance required per ticker
+#    Show top call prospects
+#       Show current positions and upcoming expirations
+#       Show Qty of long shares (for covered calls sales)
+#       Show original costs and ROI if sold
+#       Show cash which would come in if sold
+# AddRemTicker:
+#    Show current ticker list
+#    Allow click button to add ticker
+#    Allow click to remove ticker
 
-    def __init__(self, callOrPut, type):
-        #print("__init__ Transaction")
+class GetTicker():
+    """Get ticker data and check if it's an option tradeable security. Returns 1 if found, -1 if not found"""
 
-        monthsDict = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
-                      'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
-                      'Sep': 9, 'Oct': 10, 'Nov': 11,
-                      'Dec': 12}
-        callOrPutArray = callOrPut.split(',')
+    def __init__(self,ticker):
+        tail = '&output=json'
+        urlpath1 = 'http://www.google.com/finance/option_chain?q=' + ticker + tail
+        response1 = urllib2.urlopen(urlpath1)
+        self.i1 = response1.read()
+        self.valid = self.i1.find('expiry',0,10) # 1 = valid. -1 = options not available
 
-        # If the length of the call or put entry is 13 then it's missing
-        # the CS and CP elements. So, to index to the others, add 2.
-        if (len(callOrPutArray) == 13):
-            oRecordOffset = 0
-        elif (len(callOrPutArray) == 15):
-            oRecordOffset = 2
-        else:
-            oRecordOffset = 0
-            print("ERROR: Option record not 13 or 15 length. Check the source file from the website.")
-        # logging.info("oRecordOffset: " + oRecordOffset.__str__())
-        # logging.info("Length of callOrPutArray: " + len(callOrPutArray).__str__())
+class AddRemTicker(webapp2.RequestHandler):
+    """Add a ticker to the list"""
 
-        self.Last = self.conv(callOrPutArray[4])
-        self.Change = self.conv(callOrPutArray[5 + oRecordOffset/2]) # add only 1 if it's longer
-        self.Vol = self.conv(callOrPutArray[9 + oRecordOffset])
-        self.Bid = self.conv(callOrPutArray[6 + oRecordOffset])
-        self.Ask = self.conv(callOrPutArray[7 + oRecordOffset])
-        self.OpenInt = self.conv(callOrPutArray[8 + oRecordOffset])
-        self.Strike = self.conv(callOrPutArray[10 + oRecordOffset])
-        self.month = callOrPutArray[11 + oRecordOffset].split('"')[1][0:3]
-        self.monthNum = monthsDict[self.month]
-        self.year = int(callOrPutArray[12 + oRecordOffset].split('"')[0][1:5])
-        self.Type = type
+    def post(self):
+        logging.info("|| AddRemTicker")
 
-    def conv(self, x):
-        # logging.info("conv1")
-        if (len(x) == 0):
-            # logging.info("conv1.1")
-            return 0
-        else:
-            # logging.info("conv1.2")
-            # logging.info(x)
-            # logging.info(x.split('"')[1])
-            try:
-                a = float(x.split('"')[1])
-                return a
-            except:
-                if (x.split('"')[1] == '-'):
-                    return 0
-                else:
-                    return -1
+        # Show existing ticker list
+        # Give a button to add a ticker
+        # Give a button to remove a ticker
 
-# [START greeting]
-# class Author(ndb.Model):
-#     """Sub model for representing an author."""
-#     identity = ndb.StringProperty(indexed=False)
-#     email = ndb.StringProperty(indexed=False)
-#
-#
-# class Greeting(ndb.Model):
-#     """A main model for representing an individual Guestbook entry."""
-#     author = ndb.StructuredProperty(Author)
-#     content = ndb.StringProperty(indexed=False)
-#     date = ndb.DateTimeProperty(auto_now_add=True)
-# [END greeting]
+        ticker_query = TickerNDB.query(
+            ancestor=tickerbook_key(DEFAULT_TICKERBOOK_NAME))
+
+        tickers = ticker_query.fetch()
+
+        template_values = {
+            'tickers': tickers,
+            # 'tickers': tickers,
+            # 'tickerbook_name': urllib.quote_plus(tickerbook_name),
+            # 'greetings': greetings,
+            # 'guestbook_name': urllib.quote_plus(guestbook_name),
+            # 'items': items,
+            # 'xactionbook_name': urllib.quote_plus(xactionbook_name),
+            # 'transactions': xForDisplay
+            # 'url': url,
+            # 'url_linktext': url_linktext,
+        }
+
+        template = JINJA_ENVIRONMENT.get_template('AddRemTicker.html')
+        self.response.write(template.render(template_values))
+
+    def get(self):
+        logging.info("|| AddRemTicker")
+
+        # Show existing ticker list
+        # Give a button to add a ticker
+        # Give a button to remove a ticker
+
+        ticker_query = TickerNDB.query(
+            ancestor=tickerbook_key(DEFAULT_TICKERBOOK_NAME))
+
+        tickers = ticker_query.fetch()
+
+        template_values = {
+            'tickers': tickers,
+            # 'tickers': tickers,
+            # 'tickerbook_name': urllib.quote_plus(tickerbook_name),
+            # 'greetings': greetings,
+            # 'guestbook_name': urllib.quote_plus(guestbook_name),
+            # 'items': items,
+            #'xactionbook_name': urllib.quote_plus(xactionbook_name),
+            #'transactions': xForDisplay
+            # 'url': url,
+            # 'url_linktext': url_linktext,
+        }
+
+        template = JINJA_ENVIRONMENT.get_template('AddRemTicker.html')
+        self.response.write(template.render(template_values))
+
+        # self.response.write(tickers)
+
+class AddTicker(webapp2.RequestHandler):
+    def post(self):
+        logging.info("|| AddTicker")
+        ticker = TickerNDB(parent=tickerbook_key(DEFAULT_TICKERBOOK_NAME))
+        ticker.symbol = self.request.get('addticker')
+        logging.info(ticker.symbol)
+        ticker.put()
+        self.response.write(ticker.symbol + " added.")
+        self.redirect('/addRemTicker')
 
 class TransactionNDB(ndb.Model):
     """A main model for representing an individual stock ticker."""
@@ -217,25 +224,11 @@ class TransactionNDB(ndb.Model):
                 else:
                     return -1
 
-
-# class TickerNDB(ndb.Model):
-#     """A main model for representing an individual stock ticker."""
-#     symbol = ndb.StringProperty(indexed=False)
-#     companyName = ndb.StringProperty(indexed=False)
-#     lastPrice = ndb.FloatProperty(indexed=False)
-#     change = ndb.FloatProperty(indexed=False)
-#     volume = ndb.FloatProperty(indexed=False)
-#     bid = ndb.FloatProperty(indexed=False)
-#     ask = ndb.FloatProperty(indexed=False)
-#     openInt = ndb.FloatProperty(indexed=False)
-#     strikePrice = ndb.FloatProperty(indexed=False)
-#     strikeMonth = ndb.StringProperty(indexed=False)
-#     strikeMonthNum = ndb.StringProperty(indexed=False)
-#     strikeYear = ndb.IntegerProperty(indexed=False)
-#     optionType = ndb.StringProperty(indexed=False)
-#     date = ndb.DateTimeProperty(auto_now_add=True)
-    # transaction = ndb.StructuredProperty(TransactionNDB, repeated=True)
-
+class TickerNDB(ndb.Model):
+    """A main model for storing option data from an individual stock ticker."""
+    symbol = ndb.StringProperty(indexed=False)
+    content = ndb.StringProperty(indexed=False)
+    date = ndb.DateTimeProperty(auto_now_add=True)
 
 # [START main_page]
 class MainPage(webapp2.RequestHandler):
@@ -282,14 +275,18 @@ class MainPage(webapp2.RequestHandler):
 
         xactions = xaction_query.fetch(10)
 
-        logging.info("XACTIONS:")
+        logging.info("XACTIONS and len(xactions):")
         logging.info(xactions)
+
+        logging.info(len(xactions))
 
         xForDisplay = []
 
-        logging.info(len(xactions))
-        logging.info("xactions[1]:")
-        logging.info(xactions[1])
+        if (len(xactions)):
+            logging.info("xactions[1]:")
+            logging.info(xactions[1])
+        else:
+            logging.info("zero")
 
         if (len(xactions) > 0):
             for i in range(0, len(xactions)):
@@ -363,6 +360,13 @@ class MainPage(webapp2.RequestHandler):
         # self.response.write(template.render(template_values))
 # [END main_page]
 
+# Mainpage
+# EnterTicker
+#
+# ProcessAllTickers
+# Ticker
+# RemoveTicker
+#
 
 class EnterTicker(webapp2.RequestHandler):
 
@@ -374,62 +378,28 @@ class EnterTicker(webapp2.RequestHandler):
 
         # pL(self, "ShowTransactions")
 
+        # ticker.symbol = self.request.get('content')
+
+        tickerRead = self.request.get('newticker')
+
+        logging.info(tickerRead)
+
         f = open("f-1.txt", 'rb')
         s = f.read()
 
         list1 = s
 
-        a = 'expiry:'
-        b = '},expirations'
-        expiry2 = list1.split(a,1)[-1].split(b)[0]
-        expiry3 = expiry2.split('},')
-
-        # print("Expiry: ", end="")
-        # pL(self, "Expiry: ")
-        # for each in expiry3:
-        #     print(each[1:])
-        #     pL(self, each[1:])
-
-        a = 'expirations:['
-        b = '}],puts'
-        expirations2 = list1.split(a,1)[-1].split(b)[0]
-        expirations3 = expirations2.split('},')
-
-        # print("")
-        # print("Expirations:")
-        # pL(self," ")
-        # pL(self,"Expirations:")
-        # for each in expirations3:
-        #     print(each[1:])
-        #     pL(self,each[1:])
+        logging.info("List1: ")
+        logging.info(list1)
 
         a = 'puts:['
         b = '}],calls'
         puts2 = list1.split(a,1)[-1].split(b)[0]
         puts3 = puts2.split('},')
 
-        # print("")
-        # print("Puts:")
-        # pL(self,".")
-        # pL(self,"Puts:")
-        # pP(self,"len(each[1:]):")
-        # pL(self,len(puts3).__str__())
         for each in puts3:
             logging.info("puts3")
-            # logging.info(each[1:])
-            # print(each[1:])
-            # pL(self, each[1:])
 
-            # We set the same parent key on the 'Greeting' to ensure each
-            # Greeting is in the same entity group. Queries across the
-            # single entity group will be consistent. However, the write
-            # rate to a single entity group should be limited to
-            # ~1/second.
-            # tickerbook_name = self.request.get('tickerbook_name',
-            #                                   DEFAULT_TICKERBOOK_NAME)
-            #
-            # ticker  = TickerNDB(parent=tickerbook_key(tickerbook_name))
-            #
             xactionbook_name = self.request.get('xactionbook_name',
                                               DEFAULT_XACTIONBOOK_NAME)
 
@@ -443,7 +413,6 @@ class EnterTicker(webapp2.RequestHandler):
 
             # xaction = TransactionNDB(parent=tickerbook_key(tickerbook_name))
             xaction.create(each[1:], "P")  # Create a transaction for each
-
 
             # I think I don't need this next stuff:
             # logging.info(ticker.companyName)
@@ -465,9 +434,8 @@ class EnterTicker(webapp2.RequestHandler):
             #
             # ticker.put()
             # End dont' need
-            time.sleep(1)
+            sleep(1)
             xaction.put()
-
 
             # tr.pL = pL
             # tr.pL(self, each[1:])
@@ -579,42 +547,12 @@ headers = {'to':'asc',
          'date':'asc',
          'type':'asc',}
 
-
-
-
-# [START guestbook]
-# class Guestbook(webapp2.RequestHandler):
-#
-#     def post(self):
-        # We set the same parent key on the 'Greeting' to ensure each
-        # Greeting is in the same entity group. Queries across the
-        # single entity group will be consistent. However, the write
-        # rate to a single entity group should be limited to
-        # ~1/second.
-        # guestbook_name = self.request.get('guestbook_name',
-        #                                   DEFAULT_GUESTBOOK_NAME)
-        # greeting = Greeting(parent=guestbook_key(guestbook_name))
-
-        # if users.get_current_user():
-        #     greeting.author = Author(
-        #             identity=users.get_current_user().user_id(),
-        #             email=users.get_current_user().email())
-
-        # greeting.content = self.request.get('content')
-        # greeting.put()
-
-        # time.sleep(2)
-
-        # query_params = {'guestbook_name': guestbook_name}
-        # self.redirect('/?' + urllib.urlencode(query_params))
-# [END guestbook]
-
-
 # [START app]
 app = webapp2.WSGIApplication([
     ('/', MainPage),
-    # ('/sign', Guestbook),
+    ('/addRemTicker', AddRemTicker),
     ('/enterTicker', EnterTicker),
+    ('/addTicker', AddTicker),
 ], debug=True)
 # [END app]
 

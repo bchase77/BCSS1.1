@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BC Title</title>
+</head>
+<body>
+      <form action="/addTicker" method="post">
+        <div><textarea name="addticker" class="input-block-level" rows="1"></textarea></div>
+        <div><input type="submit" class="btn btn-small btn-primary" value="Add Ticker"></div>
+      </form>
+        {% for t in tickers %}
+      <form action="/remTicker" method="post">
+        <div><input type="submit" class="btn btn-small btn-primary" value={{ t.symbol }}></div>
+      </form>
+        <!--{{ t.symbol }}-->
+        {% endfor %}
+</body>
+</html>
