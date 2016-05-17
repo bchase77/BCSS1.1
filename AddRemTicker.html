@@ -2,18 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BC Title</title>
+    <title>Add / Remove</title>
 </head>
 <body>
       <form action="/addTicker" method="post">
-        <div><textarea name="addticker" class="input-block-level" rows="1"></textarea></div>
-        <div><input type="submit" class="btn btn-small btn-primary" value="Add Ticker"></div>
+        <div><textarea name="addticker" class="input-block-level" rows="1"></textarea>
+            <input type="submit" class="btn btn-small btn-primary" value="Add Ticker"></div>
       </form>
-        {% for t in tickers %}
       <form action="/remTicker" method="post">
-        <div><input type="submit" class="btn btn-small btn-primary" value={{ t.symbol }}></div>
-      </form>
+        Click First to Remove One:
+          <input type="radio" name="ViewDelete" value="View" checked="Checked"> View <BR>
+          <input type="radio" name="ViewDelete" value="Delete"> Delete <BR>
+          <BR>
+      <!--</form>-->
+      Tickers being tracked:
+      {% for t in tickers %}
+      <!--<form action="/remTicker" method="post">-->
+        <div><input name="buttonticker" type="submit" value="{{ t.symbol }}" /> </div>
         <!--{{ t.symbol }}-->
         {% endfor %}
+      </form>
 </body>
 </html>

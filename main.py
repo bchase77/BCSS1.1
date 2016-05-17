@@ -28,6 +28,7 @@ from time import sleep
 
 #from google.appengine.lib.requests import requests
 from google.appengine.api import users
+from google.appengine.datastore.acl_pb import Entry
 from google.appengine.ext import ndb
 import jinja2
 import webapp2
@@ -43,7 +44,7 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 # [END imports]
 
 DEFAULT_XACTIONBOOK_NAME = 'default_xactionbook'
-DEFAULT_TICKERBOOK_NAME = 'default_tickerbook'
+#1 DEFAULT_TICKERBOOK_NAME = 'default_tickerbook'
 
 def xactionbook_key(xactionbook_name=DEFAULT_XACTIONBOOK_NAME):
     """Constructs a Datastore key for a Guestbook entity.
@@ -51,11 +52,11 @@ def xactionbook_key(xactionbook_name=DEFAULT_XACTIONBOOK_NAME):
     """
     return ndb.Key('xactionbook', xactionbook_name)
 
-def tickerbook_key(tickerbook_name=DEFAULT_TICKERBOOK_NAME):
-    """Constructs a Datastore key for a ticker entity.
-    We use tickerbook_name as the key.
-    """
-    return ndb.Key('tickerbook', tickerbook_name)
+#1 def tickerbook_key(tickerbook_name=DEFAULT_TICKERBOOK_NAME):
+#1     """Constructs a Datastore key for a ticker entity.
+#1     We use tickerbook_name as the key.
+#1     """
+#1     return ndb.Key('tickerbook', tickerbook_name)
 
 
 # Mainpage:
@@ -89,32 +90,73 @@ class GetTicker():
         self.i1 = response1.read()
         self.valid = self.i1.find('expiry',0,10) # 1 = valid. -1 = options not available
 
+class RemTicker(webapp2.RequestHandler):
+    """Remove a ticker from the list"""
+
+    def post(self):
+        logging.info("|| RemTicker")
+
+#        removeCheck = self.request.get("ViewDelete", default_value="|| No Choice")
+        removeCheck = self.request.get("ViewDelete")
+        logging.info("|| removeCheck")
+        logging.info(removeCheck)
+
+        if (removeCheck == "Delete"):
+
+            # Double check they reall want to remove the symbol
+
+            tickerToRemove = self.request.get("buttonticker", default_value="default_value")
+            logging.info(tickerToRemove)
+            ## Above works to here
+
+            #TODO: Some kind of deleting worked. Clean it up! The key was to remove all the tickerbook crap
+            # and then delete the old datastore keys.
+
+    #1        allTickersQ = TickerNDB.query(ancestor=tickerbook_key(DEFAULT_TICKERBOOK_NAME))
+            allTickersQ = TickerNDB.query()
+            logging.info('allTickersQ')
+            logging.info(allTickersQ)
+
+            allTickers = allTickersQ.fetch()
+            logging.info('allTickers')
+            logging.info(allTickers)
+
+    #1        entityQ = TickerNDB.query(TickerNDB.symbol == tickerToRemove,
+    #1                                     ancestor=tickerbook_key(DEFAULT_TICKERBOOK_NAME))
+            entityQ = TickerNDB.query(TickerNDB.symbol == tickerToRemove)
+            logging.info('entityQ')
+            logging.info(entityQ)
+
+            entity = entityQ.get()
+            logging.info('entity')
+            logging.info(entity)
+
+            entity.key.delete()
+            sleep(0.2)
+            self.redirect('/addRemTicker')
+        else:
+            tickerToView = self.request.get("buttonticker", default_value="default_value")
+            logging.info(tickerToView)
+            removeCheck = "View"
+            self.redirect('/addRemTicker')
+
+
 class AddRemTicker(webapp2.RequestHandler):
     """Add a ticker to the list"""
 
     def post(self):
         logging.info("|| AddRemTicker")
-
         # Show existing ticker list
-        # Give a button to add a ticker
+        # Give a button and text area to add a ticker
         # Give a button to remove a ticker
 
-        ticker_query = TickerNDB.query(
-            ancestor=tickerbook_key(DEFAULT_TICKERBOOK_NAME))
-
-        tickers = ticker_query.fetch()
+#1        ticker_query = TickerNDB.query(
+#1            ancestor=tickerbook_key(DEFAULT_TICKERBOOK_NAME))
+        ticker_query = TickerNDB.query()
+        tickers = ticker_query.fetch() # Get the whole list
 
         template_values = {
             'tickers': tickers,
-            # 'tickers': tickers,
-            # 'tickerbook_name': urllib.quote_plus(tickerbook_name),
-            # 'greetings': greetings,
-            # 'guestbook_name': urllib.quote_plus(guestbook_name),
-            # 'items': items,
-            # 'xactionbook_name': urllib.quote_plus(xactionbook_name),
-            # 'transactions': xForDisplay
-            # 'url': url,
-            # 'url_linktext': url_linktext,
         }
 
         template = JINJA_ENVIRONMENT.get_template('AddRemTicker.html')
@@ -122,42 +164,34 @@ class AddRemTicker(webapp2.RequestHandler):
 
     def get(self):
         logging.info("|| AddRemTicker")
-
         # Show existing ticker list
         # Give a button to add a ticker
         # Give a button to remove a ticker
 
-        ticker_query = TickerNDB.query(
-            ancestor=tickerbook_key(DEFAULT_TICKERBOOK_NAME))
-
-        tickers = ticker_query.fetch()
+#1        ticker_query = TickerNDB.query(
+#1            ancestor=tickerbook_key(DEFAULT_TICKERBOOK_NAME))
+        ticker_query = TickerNDB.query()
+        tickers = ticker_query.fetch() # Get the whole list
 
         template_values = {
             'tickers': tickers,
-            # 'tickers': tickers,
-            # 'tickerbook_name': urllib.quote_plus(tickerbook_name),
-            # 'greetings': greetings,
-            # 'guestbook_name': urllib.quote_plus(guestbook_name),
-            # 'items': items,
-            #'xactionbook_name': urllib.quote_plus(xactionbook_name),
-            #'transactions': xForDisplay
-            # 'url': url,
-            # 'url_linktext': url_linktext,
         }
 
         template = JINJA_ENVIRONMENT.get_template('AddRemTicker.html')
         self.response.write(template.render(template_values))
 
-        # self.response.write(tickers)
-
 class AddTicker(webapp2.RequestHandler):
     def post(self):
         logging.info("|| AddTicker")
-        ticker = TickerNDB(parent=tickerbook_key(DEFAULT_TICKERBOOK_NAME))
+        ticker = TickerNDB()
+#1        ticker = TickerNDB(parent=tickerbook_key(DEFAULT_TICKERBOOK_NAME))
         ticker.symbol = self.request.get('addticker')
         logging.info(ticker.symbol)
-        ticker.put()
-        self.response.write(ticker.symbol + " added.")
+        if ticker.symbol: # Empty strings are 'falsy'
+            tkey = ticker.put()
+            logging.info("tkey: " + str(tkey))
+#        self.response.write(ticker.symbol + " added.")
+        sleep(0.2)
         self.redirect('/addRemTicker')
 
 class TransactionNDB(ndb.Model):
@@ -178,7 +212,6 @@ class TransactionNDB(ndb.Model):
     date = ndb.DateTimeProperty(auto_now_add=True)
 
     def create(self, callOrPut, type):
-
         callOrPutArray = callOrPut.split(',')
         # If the length of the call or put entry is 13 then it's missing
         # the CS and CP elements. So, to index to the others, add 2.
@@ -225,8 +258,8 @@ class TransactionNDB(ndb.Model):
                     return -1
 
 class TickerNDB(ndb.Model):
-    """A main model for storing option data from an individual stock ticker."""
-    symbol = ndb.StringProperty(indexed=False)
+    """A main model for storing tickers we are interested in."""
+    symbol = ndb.StringProperty(indexed=True)
     content = ndb.StringProperty(indexed=False)
     date = ndb.DateTimeProperty(auto_now_add=True)
 
@@ -553,6 +586,7 @@ app = webapp2.WSGIApplication([
     ('/addRemTicker', AddRemTicker),
     ('/enterTicker', EnterTicker),
     ('/addTicker', AddTicker),
+    ('/remTicker', RemTicker),
 ], debug=True)
 # [END app]
 
